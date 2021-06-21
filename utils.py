@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import pandas as pd
 
 def conv_layer_2d(x, filter_shape, stride, trainable=True):
     W = tf.get_variable(
@@ -194,3 +195,17 @@ def generate_TFRecords(filename, data, mode='test', K=None):
 
             example = tf.train.Example(features=features)
             writer.write(example.SerializeToString())
+
+def csv_to_np(filename):
+    '''
+        Generates a numpy array from a *.csv file.
+
+        inputs:
+            filename - filename for CSV (should by type *.csv)
+
+        outputs:
+            data_array - numpy array representing data in *.csv file
+    '''
+    data = pd.read_csv(filename)
+    data_array = np.array(data)
+    return data_array
