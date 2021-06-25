@@ -4,13 +4,13 @@ from PhIREGANs import *
 
 # WIND - LR-MR
 #-------------------------------------------------------------
-
+'''
 data_type = 'wind'
 data_path = 'example_data/wind_LR-MR.tfrecord'
 model_path = 'models/wind_lr-mr/trained_gan/gan'
 r = [2, 5]
 mu_sig=[[0.7684, -0.4575], [4.9491, 5.8441]]
-
+'''
 
 # WIND - MR-HR
 #-------------------------------------------------------------
@@ -24,13 +24,13 @@ mu_sig=[[0.7684, -0.4575], [5.02455, 5.9017]]
 
 # SOLAR - LR-MR
 #-------------------------------------------------------------
-'''
+
 data_type = 'solar'
 data_path = 'example_data/solar_LR-MR.tfrecord'
 model_path = 'models/solar_lr-mr/trained_gan/gan'
 r = [5]
 mu_sig=[[344.3262, 113.7444], [370.8409, 111.1224]]
-'''
+
 
 # SOLAR - MR-HR
 #-------------------------------------------------------------
