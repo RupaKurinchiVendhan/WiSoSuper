@@ -1,0 +1,3 @@
+model_checkpoint_path: "cnn"
+all_model_checkpoint_paths: "..\\cnn00010\\cnn"
+all_model_checkpoint_paths: "cnn"

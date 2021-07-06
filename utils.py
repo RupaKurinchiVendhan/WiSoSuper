@@ -30,9 +30,9 @@ def deconv_layer_2d(x, filter_shape, output_shape, stride, trainable=True):
         name='weight',
         shape=filter_shape,
         dtype=tf.float32,
-        initializer=tf.compat.v1.contrib.layers.xavier_initializer(),
+        initializer=tf.contrib.layers.xavier_initializer(),
         trainable=trainable)
-    b = tf.get_variable(
+    b = tf.compat.v1.get_variable(
         name='bias',
         shape=[output_shape[-1]],
         dtype=tf.float32,
@@ -175,6 +175,10 @@ def generate_TFRecords(filename, data, mode='test', K=None):
             if mode == 'train':
                 h_HR, w_HR, c = data[j, ...].shape
                 h_LR, w_LR, c = data_LR[j, ...].shape
+
+                print(f'LR byte array length: {len(data_LR[j, ...].tostring())}')
+                print(f'HR byte array length: {len(data[j, ...].tostring())}')
+
                 features = tf.train.Features(feature={
                                      'index': _int64_feature(j),
                                    'data_LR': _bytes_feature(data_LR[j, ...].tostring()),

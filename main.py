@@ -2,15 +2,32 @@
 '''
 from PhIREGANs import *
 
+# EXAMPLE
+#-------------------------------------------------------------
+
+data_type = 'wind'
+LR_data_path = 'example_data/wind14.tfrecord'
+HR_data_path = 'example_data/wind9.tfrecord'
+model_path = None
+r = [2]
+mu_sig=[[0.7684, -0.4575], [5.02455, 5.9017]]
+
+# data_type = 'solar'
+# data_path = 'example_data/solar5.tfrecord'
+# model_path = None
+# r = [2]
+# mu_sig=[[0.7684, -0.4575], [5.02455, 5.9017]]
+
+
 # WIND - LR-MR
 #-------------------------------------------------------------
-'''
-data_type = 'wind'
+
+'''data_type = 'wind'
 data_path = 'example_data/wind_LR-MR.tfrecord'
 model_path = 'models/wind_lr-mr/trained_gan/gan'
 r = [2, 5]
-mu_sig=[[0.7684, -0.4575], [4.9491, 5.8441]]
-'''
+mu_sig=[[0.7684, -0.4575], [4.9491, 5.8441]]'''
+
 
 # WIND - MR-HR
 #-------------------------------------------------------------
@@ -25,11 +42,11 @@ mu_sig=[[0.7684, -0.4575], [5.02455, 5.9017]]
 # SOLAR - LR-MR
 #-------------------------------------------------------------
 
-data_type = 'solar'
+'''data_type = 'solar'
 data_path = 'example_data/solar_LR-MR.tfrecord'
 model_path = 'models/solar_lr-mr/trained_gan/gan'
 r = [5]
-mu_sig=[[344.3262, 113.7444], [370.8409, 111.1224]]
+mu_sig=[[344.3262, 113.7444], [370.8409, 111.1224]]'''
 
 
 # SOLAR - MR-HR
@@ -45,20 +62,23 @@ mu_sig = [[344.3262, 113.7444], [386.9283, 117.9627]]
 if __name__ == '__main__':
 
     phiregans = PhIREGANs(data_type=data_type, mu_sig=mu_sig)
-    
+
+    # phiregans.view_data(data_path=data_path)
     model_dir = phiregans.pretrain(r=r,
-                                   data_path=data_path,
+                                   LR_data_path=LR_data_path,
+                                   HR_data_path=HR_data_path,
                                    model_path=model_path,
                                    batch_size=1)
 
     model_dir = phiregans.train(r=r,
-                                data_path=data_path,
+                                LR_data_path=LR_data_path,
+                                HR_data_path=HR_data_path,
                                 model_path=model_dir,
                                 batch_size=1)
     
     phiregans.test(r=r,
-                   data_path=data_path,
+                   data_path=LR_data_path,
                    model_path=model_dir,
-                   batch_size=1)
+                   batch_size=1, plot_data=True)
 
 

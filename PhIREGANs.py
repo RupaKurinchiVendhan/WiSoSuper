@@ -3,9 +3,13 @@
 import os
 import numpy as np
 import tensorflow as tf
+import pandas as pd
 from time import strftime, time
 from utils import plot_SR_data
 from sr_network import SR_NETWORK
+# import logging
+
+# logging.getLogger().setLevel(logging.DEBUG)
 
 class PhIREGANs:
     # Network training meta-parameters
@@ -58,7 +62,7 @@ class PhIREGANs:
         self.model_name    = '/'.join(['models', self.run_id])
         self.data_out_path = '/'.join(['data_out', self.run_id])
 
-    def pretrain(self, r, data_path, model_path=None, batch_size=100):
+    def pretrain(self, r, LR_data_path, HR_data_path, model_path=None, batch_size=100):
         '''
             This method trains the generator without using a disctiminator/adversarial training.
             This method should be called to sufficiently train the generator to produce decent images before
@@ -77,9 +81,9 @@ class PhIREGANs:
         tf.compat.v1.reset_default_graph()
 
         if self.mu_sig is None:
-            self.set_mu_sig(data_path, batch_size)
+            self.set_mu_sig(LR_data_path, batch_size)
 
-        self.set_LR_data_shape(data_path)
+        self.set_LR_data_shape(LR_data_path)
         h, w, C = self.LR_data_shape
 
         print('Initializing network ...', end=' ')
@@ -88,7 +92,7 @@ class PhIREGANs:
 
         model = SR_NETWORK(x_LR, x_HR, r=r, status='pretraining')
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate)
         g_train_op = optimizer.minimize(model.g_loss, var_list= model.g_variables)
         init = tf.global_variables_initializer()
 
@@ -96,17 +100,27 @@ class PhIREGANs:
         print('Done.')
 
         print('Building data pipeline ...', end=' ')
-        ds = tf.data.TFRecordDataset(data_path)
-        ds = ds.map(lambda xx: self._parse_train_(xx, self.mu_sig)).shuffle(1000).batch(batch_size)
 
-        iterator = tf.data.Iterator.from_structure(ds.output_types,
-                                                   ds.output_shapes)
-        idx, LR_out, HR_out = iterator.get_next()
+        ds_LR = tf.data.TFRecordDataset(LR_data_path)
+        ds_LR = ds_LR.map(lambda xx: self._parse_data_(xx, self.mu_sig)).batch(batch_size)
+        iterator_LR = tf.data.Iterator.from_structure(ds_LR.output_types,
+                                                   ds_LR.output_shapes)
+        # logging.debug(ds.output_types)
+        # logging.debug(ds.output_shapes)
+        idx, LR_out = iterator_LR.get_next()
+        
+        ds_HR = tf.data.TFRecordDataset(HR_data_path)
+        ds_HR = ds_HR.map(lambda xx: self._parse_data_(xx, self.mu_sig)).batch(batch_size)
 
-        init_iter = iterator.make_initializer(ds)
+        iterator_HR = tf.data.Iterator.from_structure(ds_HR.output_types,
+                                                   ds_HR.output_shapes)
+        _, HR_out = iterator_HR.get_next()
+        
+        init_iter_LR = iterator_LR.make_initializer(ds_LR)
+        init_iter_HR = iterator_HR.make_initializer(ds_HR)
         print('Done.')
 
-        with tf.Session() as sess:
+        with tf.compat.v1.Session() as sess:
             print('Training network ...')
 
             sess.run(init)
@@ -122,7 +136,8 @@ class PhIREGANs:
                 print('Epoch: %d' %(epoch))
                 start_time = time()
 
-                sess.run(init_iter)
+                sess.run(init_iter_LR)
+                sess.run(init_iter_HR)
                 try:
                     epoch_loss, N = 0, 0
                     while True:
@@ -168,9 +183,9 @@ class PhIREGANs:
 
         return saved_model
 
-    def train(self, r, data_path, model_path, batch_size=100, alpha_advers=0.001):
+    def train(self, r, LR_data_path, HR_data_path, model_path, batch_size=100, alpha_advers=0.001):
         '''
-            This method trains the generator using a disctiminator/adversarial training.
+            This method trains the generator using a discriminator/adversarial training.
             This method should be called after a sufficiently pretrained generator has been saved.
 
             inputs:
@@ -189,9 +204,9 @@ class PhIREGANs:
         assert model_path is not None, 'Must provide path for pretrained model'
 
         if self.mu_sig is None:
-            self.set_mu_sig(data_path, batch_size)
+            self.set_mu_sig(LR_data_path, batch_size)
 
-        self.set_LR_data_shape(data_path)
+        self.set_LR_data_shape(LR_data_path)
         h, w, C = self.LR_data_shape
 
         print('Initializing network ...', end=' ')
@@ -200,7 +215,7 @@ class PhIREGANs:
 
         model = SR_NETWORK(x_LR, x_HR, r=r, status='training', alpha_advers=alpha_advers)
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+        optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate)
         g_train_op = optimizer.minimize(model.g_loss, var_list=model.g_variables)
         d_train_op = optimizer.minimize(model.d_loss, var_list=model.d_variables)
         init = tf.global_variables_initializer()
@@ -210,14 +225,23 @@ class PhIREGANs:
         print('Done.')
 
         print('Building data pipeline ...', end=' ')
-        ds = tf.data.TFRecordDataset(data_path)
-        ds = ds.map(lambda xx: self._parse_train_(xx, self.mu_sig)).shuffle(1000).batch(batch_size)
 
-        iterator = tf.data.Iterator.from_structure(ds.output_types,
-                                                   ds.output_shapes)
-        idx, LR_out, HR_out = iterator.get_next()
+        ds_LR = tf.data.TFRecordDataset(LR_data_path)
+        ds_LR = ds_LR.map(lambda xx: self._parse_data_(xx, self.mu_sig)).batch(batch_size)
+        iterator_LR = tf.data.Iterator.from_structure(ds_LR.output_types,
+                                                   ds_LR.output_shapes)
 
-        init_iter = iterator.make_initializer(ds)
+        idx, LR_out = iterator_LR.get_next()
+        
+        ds_HR = tf.data.TFRecordDataset(HR_data_path)
+        ds_HR = ds_HR.map(lambda xx: self._parse_data_(xx, self.mu_sig)).batch(batch_size)
+
+        iterator_HR = tf.data.Iterator.from_structure(ds_HR.output_types,
+                                                   ds_HR.output_shapes)
+        _, HR_out = iterator_HR.get_next()
+        
+        init_iter_LR = iterator_LR.make_initializer(ds_LR)
+        init_iter_HR = iterator_HR.make_initializer(ds_HR)
         print('Done.')
 
         with tf.Session() as sess:
@@ -242,7 +266,8 @@ class PhIREGANs:
                 start_time = time()
 
                 # Loop through training data
-                sess.run(init_iter)
+                sess.run(init_iter_LR)
+                sess.run(init_iter_HR)
                 try:
                     epoch_g_loss, epoch_d_loss, N = 0, 0, 0
                     while True:
@@ -349,7 +374,7 @@ class PhIREGANs:
         print('Building data pipeline ...', end=' ')
 
         ds = tf.data.TFRecordDataset(data_path)
-        ds = ds.map(lambda xx: self._parse_test_(xx, self.mu_sig)).batch(batch_size)
+        ds = ds.map(lambda xx: self._parse_data_(xx, self.mu_sig)).batch(batch_size)
 
         iterator = tf.data.Iterator.from_structure(ds.output_types,
                                                    ds.output_shapes)
@@ -427,7 +452,6 @@ class PhIREGANs:
 
         h_LR, w_LR = example['h_LR'], example['w_LR']
         h_HR, w_HR = example['h_HR'], example['w_HR']
-
         c = example['c']
 
         data_LR = tf.decode_raw(example['data_LR'], tf.float64)
@@ -442,7 +466,7 @@ class PhIREGANs:
 
         return idx, data_LR, data_HR
 
-    def _parse_test_(self, serialized_example, mu_sig=None):
+    def _parse_data_(self, serialized_example, mu_sig=None):
         '''
             Parser data from TFRecords for the models to read in for testing
 
@@ -531,12 +555,14 @@ class PhIREGANs:
 
         print('Loading data ...', end=' ')
         dataset = tf.compat.v1.data.TFRecordDataset(data_path)
-        dataset = dataset.map(self._parse_test_).batch(1)
+        dataset = dataset.map(self._parse_data_).batch(1)
 
         iterator = dataset.make_one_shot_iterator()
         _, LR_out = iterator.get_next()
 
         with tf.compat.v1.Session() as sess:
             data_LR = sess.run(LR_out)
+        print("SHAPE")
+        print(data_LR.shape)
 
         self.LR_data_shape = data_LR.shape[1:]
