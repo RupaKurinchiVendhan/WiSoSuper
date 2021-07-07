@@ -6,8 +6,8 @@ from PhIREGANs import *
 #-------------------------------------------------------------
 
 data_type = 'wind'
-LR_data_path = 'example_data/wind14.tfrecord'
-HR_data_path = 'example_data/wind9.tfrecord'
+LR_data_path = 'example_data/example_LR.tfrecord'
+HR_data_path = 'example_data/example_HR.tfrecord'
 model_path = None
 r = [2]
 mu_sig=[[0.7684, -0.4575], [5.02455, 5.9017]]
