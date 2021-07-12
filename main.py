@@ -6,10 +6,10 @@ from PhIREGANs import *
 #-------------------------------------------------------------
 
 data_type = 'wind'
-LR_data_path = 'example_data/example_LR.tfrecord'
-HR_data_path = 'example_data/example_HR.tfrecord'
+LR_data_path = 'example_data/HR_us_wind3_LR.tfrecord'
+HR_data_path = 'example_data/HR_us_wind3_HR.tfrecord'
 model_path = None
-r = [2]
+r = [2, 5]
 mu_sig=[[0.7684, -0.4575], [5.02455, 5.9017]]
 
 # data_type = 'solar'

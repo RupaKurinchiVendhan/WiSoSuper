@@ -48,7 +48,7 @@ def _parse_train_(serialized_example, mu_sig=None):
     print(f'LR Data: {data_LR[0:10]}')
     # print(f'HR Data: {data_HR[0:10]}')
 
-    print(f'Data LR Shape: {data_LR.shape}')
+    # print(f'Data LR Shape: {data_LR.shape}')
 
     data_LR = tf.reshape(data_LR, (h_LR, w_LR, c))
     # data_HR = tf.reshape(data_HR, (h_HR, w_HR, c))
@@ -62,14 +62,14 @@ def _parse_train_(serialized_example, mu_sig=None):
     return idx, data_LR
 
 for _ in range(10):
-    # ds1 = tf.python_io.tf_record_iterator('example_data/wind_LR-MR.tfrecord')
+    ds1 = tf.python_io.tf_record_iterator('example_data/wind_LR-MR.tfrecord')
     # ds2 = tf.python_io.tf_record_iterator('example_data/wind9.tfrecord')
 
     # ds1 = tf.python_io.tf_record_iterator('example_data/wind12.tfrecord')
-    ds2 = tf.python_io.tf_record_iterator('example_data/example_HR.tfrecord')
+    ds2 = tf.python_io.tf_record_iterator('example_data/us_wind_HR.tfrecord')
 
-    # print('-------- Parsing DS1 ------------')
-    # _parse_train_(next(ds1))
+    print('-------- Parsing DS1 ------------')
+    _parse_train_(next(ds1))
 
     print('-------- Parsing DS2 ------------')
     _parse_train_(next(ds2))
