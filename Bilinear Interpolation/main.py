@@ -127,6 +127,7 @@ def main():
     axs[1].set_title("Bilinear")
     axs[1].imshow(cv2.cvtColor(np.array(bil_img_algo), cv2.COLOR_BGR2RGB))
 
+    # Calculate and print the PSNR value
     psnr = PSNR(img, np.array(bil_img_algo))
     print(f"PSNR value is {psnr} dB")
 
