@@ -1,7 +1,8 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from math import sqrt, log10
+from math import sqrt, floor, log10
+from skimage.metrics import structural_similarity as ssim
 from PIL import Image
 
 
@@ -38,6 +39,24 @@ def image_change_scale(img, dimension, scale=100, interpolation=cv2.INTER_LINEAR
 
     return resized_img
 
+
+def W(x):
+    '''Weight function that return weight for each distance point
+    Parameters:
+    x (float): Distance from destination point
+
+    Returns:
+    float: Weight
+    '''
+    a = -0.5
+    pos_x = abs(x)
+    if -1 <= abs(x) <= 1:
+        return ((a+2)*(pos_x**3)) - ((a+3)*(pos_x**2)) + 1
+    elif 1 < abs(x) < 2 or -2 < x < -1:
+        return ((a * (pos_x**3)) - (5*a*(pos_x**2)) + (8 * a * pos_x) - 4*a)
+    else:
+        return 0
+        
 
 def bilinear_interpolation(image, dimension):
     '''Bilinear interpolation method to convert small image to original image
@@ -84,22 +103,65 @@ def bilinear_interpolation(image, dimension):
 
     return new_image
 
+def bicubic_interpolation(img, dimension):
+    '''Bicubic interpolation method to convert small size image to original size image
+    Parameters:
+    img (numpy.ndarray): Small image
+    dimension (tuple): resizing image dimension
 
-def PSNR(original, compressed):
-    mse = np.mean((original - compressed) ** 2)
-    if(mse == 0):  # MSE is zero means no noise is present in the signal .
-                  # Therefore PSNR have no importance.
+    Returns:
+    numpy.ndarray: Resized image
+    '''
+    nrows = dimension[0]
+    ncols = dimension[1]
+
+    output = np.zeros((nrows, ncols, img.shape[2]), np.uint8)
+    for c in range(img.shape[2]):
+        for i in range(nrows):
+            for j in range(ncols):
+                xm = (i + 0.5) * (img.shape[0]/dimension[0]) - 0.5
+                ym = (j + 0.5) * (img.shape[1]/dimension[1]) - 0.5
+
+                xi = floor(xm)
+                yi = floor(ym)
+
+                u = xm - xi
+                v = ym - yi
+
+                out = 0
+                for n in range(-1, 3):
+                    for m in range(-1, 3):
+                        if ((xi + n < 0) or (xi + n >= img.shape[1]) or (yi + m < 0) or (yi + m >= img.shape[0])):
+                            continue
+
+                        out += (img[xi+n, yi+m, c] * (W(u - n) * W(v - m)))
+
+                output[i, j, c] = np.clip(out, 0, 255)
+
+    return output
+
+
+def psnr(imageA, imageB):
+    mse = np.mean((imageA - imageB) ** 2)
+    # MSE is zero means no noise is present in the signal and PSNR has no importance.
+    if(mse == 0):  
         return 100
     max_pixel = 255.0
     psnr = 20 * log10(max_pixel / sqrt(mse))
     return psnr
+
+def mse(imageA, imageB):
+ # the 'Mean Squared Error' between the two images is the sum of the squared difference between the two images
+ mse_error = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
+ mse_error /= float(imageA.shape[0] * imageA.shape[1])
+ # return the MSE. The lower the error, the more "similar" the two images are.
+ return mse_error
 
 
 def main():
     images_list = {}
 
     # Read Image
-    # img, size, dimension = read_image("./butterfly.png")
     img, size, dimension = read_image("./test.png")
     print(f"Image size is: {size}")
     images_list['Original Image'] = img
@@ -110,7 +172,7 @@ def main():
     print(f"Smalled Image size is: {resized_img.shape}")
     images_list['Smalled Image'] = resized_img
 
-    fig, axs = plt.subplots(1, 2)
+    fig, axs = plt.subplots(1, 3)
     fig.suptitle('Interpolation Baseline', fontsize=16)
 
     # Change image to original size using bilinear interpolation
@@ -121,15 +183,46 @@ def main():
     bil_img_algo = bilinear_interpolation(resized_img, dimension)
     bil_img_algo = Image.fromarray(bil_img_algo.astype('uint8')).convert('RGB')
 
+    # Change image to original size using bicubic interpolation
+    cubic_img_algo = bicubic_interpolation(resized_img, dimension)
+    cubic_img_algo = Image.fromarray(
+        cubic_img_algo.astype('uint8')).convert('RGB')
+
     axs[0].set_title("Original")
     axs[0].imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
-    axs[1].set_title("Bilinear")
-    axs[1].imshow(cv2.cvtColor(np.array(bil_img_algo), cv2.COLOR_BGR2RGB))
+    axs[1].set_title("Bicubic")
+    axs[1].imshow(cv2.cvtColor(np.array(cubic_img_algo), cv2.COLOR_BGR2RGB))
 
+    axs[2].set_title("Bilinear")
+    axs[2].imshow(cv2.cvtColor(np.array(bil_img_algo), cv2.COLOR_BGR2RGB))
+    
+    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # Bicubic Error Analysis
+    print("------- Bicubic Metrics -------")
+    gray_bil = cv2.cvtColor(np.array(bil_img_algo), cv2.COLOR_BGR2GRAY)
     # Calculate and print the PSNR value
-    psnr = PSNR(img, np.array(bil_img_algo))
-    print(f"PSNR value is {psnr} dB")
+    psnr_bil = psnr(img, np.array(bil_img_algo))
+    print(f"PSNR:{psnr_bil}")
+    # Calculate and print the SSIM value
+    ssim_bil = ssim(gray_img, gray_bil)
+    print(f"SSIM: {ssim_bil}")
+    # Calculate and print the SSIM value
+    mse_bil = mse(gray_img, gray_bil)
+    print(f"MSE: {mse_bil}")
+    
+    # Bilinear Error Analysis
+    print("------- Bilinear Metrics -------")
+    gray_cub = cv2.cvtColor(np.array(cubic_img_algo), cv2.COLOR_BGR2GRAY)
+    # Calculate and print the PSNR value
+    psnr_cub = psnr(img, np.array(cubic_img_algo))
+    print(f"PSNR:{psnr_cub}")
+    # Calculate and print the SSIM value
+    ssim_cub = ssim(gray_img, gray_cub)
+    print(f"SSIM: {ssim_cub}")
+    # Calculate and print the SSIM value
+    mse_cub = mse(gray_img, gray_cub)
+    print(f"MSE: {mse_cub}")
 
     # plt.grid()
     plt.show()
