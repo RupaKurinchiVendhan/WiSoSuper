@@ -361,4 +361,4 @@ if __name__ == "__main__":
 
     # main("interp_va_1.png")
     # main("interp_va_2.png")
-    main("dni2,0.png")
+    main("wind paper real.png")
