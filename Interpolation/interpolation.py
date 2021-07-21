@@ -251,6 +251,7 @@ def psnr(imageA, imageB):
     max_pixel = 255.0
     psnr = 20 * log10(max_pixel / sqrt(mse))
     return psnr
+    
 
 def mse(imageA, imageB):
  # the 'Mean Squared Error' between the two images is the sum of the squared difference between the two images
@@ -353,6 +354,7 @@ def main(filename):
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    return np.array(bil_img_algo), np.array(cubic_img_algo)
 
 
 if __name__ == "__main__":

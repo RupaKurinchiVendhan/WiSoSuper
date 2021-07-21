@@ -32,6 +32,11 @@ def psnr(imageA, imageB):
     psnr = 20 * log10(max_pixel / sqrt(mse))
     return psnr
 
+
+def psnr2(imageA, imageB):
+    return -10. * np.log10(np.mean(np.square(imageA - imageB)))
+
+
 def mse(imageA, imageB):
  # the 'Mean Squared Error' between the two images is the sum of the squared difference between the two images
  mse_error = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
@@ -120,4 +125,4 @@ def main(filenameA, gan, bil, cub):
     plt.show()
 
 if __name__ == "__main__":
-    main("1701-dni-k=5/dni2,0.png", "1701-dni-k=5/solar-20210715-170358,2 (K=5)1.png", "1701-dni-k=5/dni2,0 bil.png", "1701-dni-k=5/dni2,0 cub.png")
+    main("paper/wind paper real.png", "paper/wind paper gan.png", "paper/wind paper real bil.png", "paper/wind paper real cub.png")
