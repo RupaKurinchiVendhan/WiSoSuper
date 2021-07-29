@@ -1,7 +1,7 @@
 ''' @author: Andrew Glaws, Karen Stengel, Ryan King
 '''
 import tensorflow as tf
-from utils import *
+from PhIREGAN.utils import *
 
 class SR_NETWORK(object):
     def __init__(self, x_LR=None, x_HR=None, r=None, status='pretraining', alpha_advers=0.001):
