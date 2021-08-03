@@ -1,4 +1,5 @@
 # Evaluating Spatial Super-Resolution Models for National Wind and Solar Data
+<p style="text-align: center;">Centered text</p>
 ## Caltech SURF Project for 2020-2021
 ## Rupa Kurinchi-Vendhan
 ### Mentors: Lucien Werner, Björn Lütjens, Ritwik Gupta, Steven Low
