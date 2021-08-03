@@ -80,7 +80,7 @@ class PhIREGANs:
             self.set_mu_sig(data_path, batch_size)
 
         self.set_LR_data_shape(data_path)
-        h, w, C = self.LR_data_shape
+        h, w, ChildProcessError = self.LR_data_shape
 
         print('Initializing network ...', end=' ')
         x_LR = tf.compat.v1.placeholder(tf.float32, [None, h,             w,            C])
