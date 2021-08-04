@@ -16,7 +16,8 @@ def psnr(imageA, imageB):
 def mse(imageA, imageB):
  # the 'Mean Squared Error' between the two images is the sum of the squared difference between the two images
  mse_error = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
- mse_error /= float(imageA.shape[0] * imageA.shape[1])
+ mse_error /= float(imageA.shape[0] * imageA.shape[1] * 255)
+ mse_error /= np.mean(imageA.astype("float"))
  # return the MSE. The lower the error, the more "similar" the two images are.
  return mse_error
 

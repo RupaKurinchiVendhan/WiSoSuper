@@ -1,5 +1,9 @@
 from numpy.lib.function_base import interp
 from PhIREGAN.PhIREGANs import *
+import EDSR.data
+from EDSR.model import get_generator
+import EDSR.utils
+import EDSR.test
 from comparison.metrics import *
 from comparison.util import *
 from Interpolation.interpolation import *
@@ -9,7 +13,6 @@ import numpy as np
 from PIL import Image
 import os
 import pandas as pd
-# from sewar.full_ref import *
 import matplotlib.image as mpimg
 import scipy.stats as stats
         
@@ -58,48 +61,6 @@ class Tester:
         cv2.imwrite(bil, np.array(bil_img_algo))
 
         return np.array(bil_img_algo), np.array(cubic_img_algo)
-
-
-    def gan(self, data_type):
-        for timestep in self.timesteps:
-            LR_data_path = 'PhIREGAN/{data_type} test/wind tfrecords/{data_type}_{timestep}_LR.tfrecord'.format(data_type=data_type, timestep=timestep)
-            HR_data_path = 'PhIREGAN/{data_type} test/wind tfrecords/{data_type}_{timestep}_HR.tfrecord'.format(timestep=timestep)
-            model_path = 'PhIREGAN/models/{data_type}_mr-hr/trained_gan/gan'.format(data_type=data_type)
-            r = [5]
-            if data_type=='wind':
-                mu_sig=[[0.7684, -0.4575], [5.02455, 5.9017]]
-            elif data_type=='solar':
-                mu_sig = [[344.3262, 113.7444], [386.9283, 117.9627]]
-
-            phiregans = PhIREGANs(component=component, mu_sig=mu_sig)
-
-            model_dir = phiregans.pretrain(r=r,
-                                        LR_data_path=LR_data_path,
-                                        HR_data_path=HR_data_path,
-                                        model_path=model_path,
-                                        batch_size=1)
-
-            model_dir = phiregans.train(r=r,
-                                        LR_data_path=LR_data_path,
-                                        HR_data_path=HR_data_path,
-                                        model_path=model_dir,
-                                        batch_size=1)
-            
-            phiregans.test(r=r,
-                        data_path=LR_data_path,
-                        model_path=model_dir,
-                        batch_size=1, timestep=timestep)
-
-    def save_output(self, data_type, timestep, i):
-        for timestep in self.timesteps:
-            sr_data = np.load('PhIREGAN/{data_type} test/gans arrays/dataSR_{timestep}.npy'.format(data_type=data_type, timestep=timestep))
-            for i in range (256):
-                for component in self.COMPONENTS[data_type]:
-                    filename = "PhIREGAN/{data_type} test/gans images/gans_{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
-                    data = sr_data[i, :, :, self.COMPONENTS[data_type][component]]
-                    plt.imsave(filename, data, origin='lower', format="png")
-                    rotate(filename, 180)
-                    flip_image(filename)
                     
     def compare_output_helper(self, data_type, component, timestep, i, plot=False):
         gt_HR = "PhIREGAN/{data_type} test/{data_type} images/{data_type}/HR/{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)

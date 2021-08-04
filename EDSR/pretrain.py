@@ -92,21 +92,10 @@ def train(**params):
     K.clear_session()
 
 
-def main():
-    parser = argparse.ArgumentParser(description='Single Image Super-Resolution')
-    parser.add_argument('--arc', type=str, required=True, help='Model type?')
-    parser.add_argument('--train', type=str, required=True, help='Path to training data')
-    parser.add_argument('--train-ext', type=str, required=True, help='Extension of training images')
-    parser.add_argument('--valid', type=str, required=True, help='Path to validation data')
-    parser.add_argument('--valid-ext', type=str, required=True, help='Extension of validation images')
-    parser.add_argument('--resume', type=str, default=None, help='Path to a checkpoint')
-    parser.add_argument('--init_epoch', type=int, default=0, help="Initial epoch")
-    parser.add_argument('--cuda', type=str, default=None, help='a list of gpus')
-    args = parser.parse_args()
-
-    if args.cuda is not None:
-        os.environ['CUDA_VISIBLE_DEVICES'] = args.cuda
-        n_gpus = len(args.cuda.split(','))
+def pretrain(model, data_dir, valid_dir, data_ext='.png', valid_ext='.png', resume=None, cuda=None):
+    if cuda is not None:
+        os.environ['CUDA_VISIBLE_DEVICES'] = cuda
+        n_gpus = len(cuda.split(','))
         batch_size = adaptive_batch_size(n_gpus)
     else:
         print('Training without gpu. It is recommended using at least one gpu.')
@@ -114,9 +103,9 @@ def main():
         batch_size = 8
 
     params = {
-        'arc': args.arc,
-        'resume': args.resume,
-        'init_epoch': args.init_epoch,
+        'arc': model,
+        'resume': resume,
+        'init_epoch': 0,
         'n_gpus': n_gpus,
         #
         'epochs': 20,
@@ -127,14 +116,14 @@ def main():
         'patch_size_lr': 74,
         'path_size_hr': 296,
         #
-        'hr_dir': os.path.join(args.train, 'HR'),
-        'lr_dir': os.path.join(args.train, 'LR'),
-        'ext': args.train_ext,
+        'hr_dir': os.path.join(train, 'HR'),
+        'lr_dir': os.path.join(train, 'LR'),
+        'ext': data_ext,
         'batch_size': batch_size,
         #
-        'val_hr_dir': os.path.join(args.valid, 'HR'),
-        'val_lr_dir': os.path.join(args.valid, 'LR'),
-        'val_ext': args.valid_ext,
+        'val_hr_dir': os.path.join(valid_dir, 'HR'),
+        'val_lr_dir': os.path.join(valid_dir, 'LR'),
+        'val_ext': valid_ext,
         'val_batch_size': 1,
         #
         'exp_dir': './exp/',
@@ -144,6 +133,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    pretrain()
 
 # python pretrain.py --arc=erca --train=../SRFeat/data/train/DIV2K --train-ext=.png --valid=../SRFeat/data/test/Set5 --valid-ext=.png --resume=exp/erca-06-24-21\:05/cp-0014.h5 --init_epoch=14 --cuda=1

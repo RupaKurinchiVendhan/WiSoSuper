@@ -102,8 +102,7 @@ class PhIREGANs:
         ds_LR = ds_LR.map(lambda xx: self._parse_data_(xx, self.mu_sig)).batch(batch_size)
         iterator_LR = tf.data.Iterator.from_structure(ds_LR.output_types,
                                                    ds_LR.output_shapes)
-        # logging.debug(ds.output_types)
-        # logging.debug(ds.output_shapes)
+                                                   
         idx, LR_out = iterator_LR.get_next()
         
         ds_HR = tf.data.TFRecordDataset(HR_data_path)
@@ -339,7 +338,7 @@ class PhIREGANs:
 
         return g_saved_model
 
-    def test(self, r, data_path, model_path, timestep, batch_size=100, plot_data=False):
+    def test(self, r, data_path, model_path, data_type, timestep, batch_size=100, plot_data=False):
         '''
             This method loads a previously trained model and runs it on test data
 
@@ -418,9 +417,10 @@ class PhIREGANs:
             if not os.path.exists(self.data_out_path):
                 os.makedirs(self.data_out_path)
             np.save(self.data_out_path+'/dataSR.npy', data_out)
-            np.save('wind test/gans arrays/dataSR_{timestep}.npy'.format(timestep=timestep), data_out)
+            np.save('{data_type} test/gans arrays/dataSR_{timestep}.npy'.format(data_type=data_type, timestep=timestep), data_out)
 
         print('Done.')
+        return data_out
 
     def _parse_train_(self, serialized_example, mu_sig=None):
         '''
