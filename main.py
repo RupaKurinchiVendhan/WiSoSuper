@@ -1,21 +1,16 @@
 from numpy.lib.function_base import interp
 from PhIREGAN.PhIREGANs import *
-import EDSR.data
 from EDSR.model import get_generator
 import EDSR.utils
 from EDSR.test import *
-from EDSR.pretrain import *
+from EDSR.train import *
 from comparison.metrics import *
-from comparison.util import *
+from utils import *
 from Interpolation.interpolation import *
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
 import os
-import pandas as pd
-import matplotlib.image as mpimg
-import scipy.stats as stats
 
 def phiregan(data_type, data_dir, mode):
     components = {'wind': {'ua':1, 'va':1}, 'solar': {'dni':0, 'dhi':1}}

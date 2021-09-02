@@ -1,31 +1,18 @@
 from numpy.lib.function_base import interp
 from PhIREGAN.PhIREGANs import *
-import EDSR.data
 from EDSR.model import get_generator
 import EDSR.utils
 import EDSR.test
 from comparison.metrics import *
-from comparison.util import *
+from utils import *
 from Interpolation.interpolation import *
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-import os
 import pandas as pd
 import matplotlib.image as mpimg
 import scipy.stats as stats
-        
-# test_wind_timesteps = [3461, 34413, 45021, 53649, 7921, 20689, 53749, 47021, 10577, 3621, 
-#                            45105, 44289, 27865, 26221, 32809, 23929, 48861, 35737, 43465, 30505, 
-#                            26113, 34497, 53165, 26637, 42685, 50249, 51633, 8801, 43597, 9781, 
-#                            44241, 57425, 34321, 43361, 6481, 10281, 26949, 55649, 42945, 44381, 
-#                            8497, 58385, 17249, 48961, 36557, 60401, 23701, 16517, 29685, 28389, 
-#                            7957, 5901, 22957, 30669, 52193, 45901, 27217, 60533, 60205, 16221, 
-#                            5849, 39685, 22485, 37949, 10557, 16193, 2889, 42989, 32545, 47697, 
-#                            18997, 8353, 19125, 27761, 12905, 37117, 47169, 58017, 40913, 28541, 
-#                            57481, 38597, 57197, 37745, 30553, 28741, 38025, 54693, 46509, 3581, 
-#                            34861, 53341, 52245, 36729, 5121, 44229, 38089, 22393, 38469, 29097]
 
 class Tester:
     DEFAULT_TIMESTEPS = []

@@ -1,247 +1,15 @@
-import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 from math import sqrt, floor, log10
-from skimage.metrics import structural_similarity as ssim
-from sklearn.metrics import mean_absolute_error as mae
+from skimage.metrics import structural_similarity as SSIM
+import lpips
+import pylab
+import matplotlib.image as mpimg
 from PIL import Image
+import scipy.stats as stats
+from scipy.stats import entropy
 
-
-def read_image(path):
-    '''Read image and return the image propertis.
-    Parameters:
-    path (string): Image path
-
-    Returns:
-    numpy.ndarray: Image exists in "path"
-    list: Image size
-    tuple: Image dimension (number of rows and columns)
-    '''
-    img = cv2.imread(path)
-    size = img.shape
-    dimension = (size[0], size[1])
-
-    return img, size, dimension
-
-def image_change_scale(img, dimension, scale=100, interpolation=cv2.INTER_LINEAR):
-    '''Resize image to a specificall scale of original image.
-    Parameters:
-    img (numpy.ndarray): Original image
-    dimension (tuple): Original image dimension
-    scale (int): Multiply the size of the original image
-
-    Returns:
-    numpy.ndarray: Resized image
-    '''
-    scale /= 100
-    new_dimension = (int(dimension[1]*scale), int(dimension[0]*scale))
-    resized_img = cv2.resize(img, new_dimension, interpolation=interpolation)
-
-    return resized_img
-
-
-def W(x):
-    '''Weight function that return weight for each distance point
-    Parameters:
-    x (float): Distance from destination point
-
-    Returns:
-    float: Weight
-    '''
-    a = -0.5
-    pos_x = abs(x)
-    if -1 <= abs(x) <= 1:
-        return ((a+2)*(pos_x**3)) - ((a+3)*(pos_x**2)) + 1
-    elif 1 < abs(x) < 2 or -2 < x < -1:
-        return ((a * (pos_x**3)) - (5*a*(pos_x**2)) + (8 * a * pos_x) - 4*a)
-    else:
-        return 0
-        
-
-def bilinear_interpolation(image, dimension):
-    '''Bilinear interpolation method to convert small image to original image
-    Parameters:
-    img (numpy.ndarray): Small image
-    dimension (tuple): resizing image dimension
-
-    Returns:
-    numpy.ndarray: Resized image
-    '''
-    height = image.shape[0]
-    width = image.shape[1]
-
-    scale_x = (width)/(dimension[1])
-    scale_y = (height)/(dimension[0])
-
-    new_image = np.zeros((dimension[0], dimension[1], image.shape[2]))
-
-    for k in range(3):
-        for i in range(dimension[0]):
-            for j in range(dimension[1]):
-                x = (j+0.5) * (scale_x) - 0.5
-                y = (i+0.5) * (scale_y) - 0.5
-
-                x_int = int(x)
-                y_int = int(y)
-
-                # Prevent crossing
-                x_int = min(x_int, width-2)
-                y_int = min(y_int, height-2)
-
-                x_diff = x - x_int
-                y_diff = y - y_int
-
-                a = image[y_int, x_int, k]
-                b = image[y_int, x_int+1, k]
-                c = image[y_int+1, x_int, k]
-                d = image[y_int+1, x_int+1, k]
-
-                pixel = a*(1-x_diff)*(1-y_diff) + b*(x_diff) * \
-                    (1-y_diff) + c*(1-x_diff) * (y_diff) + d*x_diff*y_diff
-
-                new_image[i, j, k] = pixel.astype(np.uint8)
-
-    return new_image
-
-
-def u(s, a): 
-    if (abs(s) >= 0) & (abs(s) <= 1): 
-        return (a+2)*(abs(s)**3)-(a+3)*(abs(s)**2)+1
-    elif (abs(s) > 1) & (abs(s) <= 2): 
-        return a*(abs(s)**3)-(5*a)*(abs(s)**2)+(8*a)*abs(s)-4*a 
-    return 0
-  
-  
-# Padding 
-def padding(img, H, W, C): 
-    zimg = np.zeros((H+4, W+4, C)) 
-    zimg[2:H+2, 2:W+2, :C] = img 
-      
-    # Pad the first/last two col and row 
-    zimg[2:H+2, 0:2, :C] = img[:, 0:1, :C] 
-    zimg[H+2:H+4, 2:W+2, :] = img[H-1:H, :, :] 
-    zimg[2:H+2, W+2:W+4, :] = img[:, W-1:W, :] 
-    zimg[0:2, 2:W+2, :C] = img[0:1, :, :C] 
-      
-    # Pad the missing eight points 
-    zimg[0:2, 0:2, :C] = img[0, 0, :C] 
-    zimg[H+2:H+4, 0:2, :C] = img[H-1, 0, :C] 
-    zimg[H+2:H+4, W+2:W+4, :C] = img[H-1, W-1, :C] 
-    zimg[0:2, W+2:W+4, :C] = img[0, W-1, :C] 
-    return zimg 
-  
-  
-# Bicubic operation 
-def bicubic(img, ratio, a): 
-    
-    # Get image size 
-    H, W, C = img.shape 
-      
-    # Here H = Height, W = weight, 
-    # C = Number of channels if the  
-    # image is coloured. 
-    img = padding(img, H, W, C) 
-      
-    # Create new image 
-    dH = floor(H*ratio) 
-    dW = floor(W*ratio) 
-  
-    # Converting into matrix 
-    dst = np.zeros((dH, dW, 3))   
-    # np.zeroes generates a matrix  
-    # consisting only of zeroes 
-    # Here we initialize our answer  
-    # (dst) as zero 
-  
-    h = 1/ratio 
-  
-    print('Start bicubic interpolation') 
-    print('It will take a little while...') 
-    inc = 0
-      
-    for c in range(C): 
-        for j in range(dH): 
-            for i in range(dW): 
-                
-                # Getting the coordinates of the 
-                # nearby values 
-                x, y = i * h + 2, j * h + 2
-  
-                x1 = 1 + x - floor(x) 
-                x2 = x - floor(x) 
-                x3 = floor(x) + 1 - x 
-                x4 = floor(x) + 2 - x 
-  
-                y1 = 1 + y - floor(y) 
-                y2 = y - floor(y) 
-                y3 = floor(y) + 1 - y 
-                y4 = floor(y) + 2 - y 
-                  
-                # Considering all nearby 16 values 
-                mat_l = np.matrix([[u(x1, a), u(x2, a), u(x3, a), u(x4, a)]]) 
-                mat_m = np.matrix([[img[int(y-y1), int(x-x1), c], 
-                                    img[int(y-y2), int(x-x1), c], 
-                                    img[int(y+y3), int(x-x1), c], 
-                                    img[int(y+y4), int(x-x1), c]], 
-                                   [img[int(y-y1), int(x-x2), c], 
-                                    img[int(y-y2), int(x-x2), c], 
-                                    img[int(y+y3), int(x-x2), c], 
-                                    img[int(y+y4), int(x-x2), c]], 
-                                   [img[int(y-y1), int(x+x3), c], 
-                                    img[int(y-y2), int(x+x3), c], 
-                                    img[int(y+y3), int(x+x3), c], 
-                                    img[int(y+y4), int(x+x3), c]], 
-                                   [img[int(y-y1), int(x+x4), c], 
-                                    img[int(y-y2), int(x+x4), c], 
-                                    img[int(y+y3), int(x+x4), c], 
-                                    img[int(y+y4), int(x+x4), c]]]) 
-                mat_r = np.matrix( 
-                    [[u(y1, a)], [u(y2, a)], [u(y3, a)], [u(y4, a)]]) 
-                  
-                # Here the dot function is used to get  
-                # the dot product of 2 matrices 
-                dst[j, i, c] = np.dot(np.dot(mat_l, mat_m), mat_r) 
-
-    return dst 
-
-
-def bicubic_interpolation(img, dimension):
-    '''Bicubic interpolation method to convert small size image to original size image
-    Parameters:
-    img (numpy.ndarray): Small image
-    dimension (tuple): resizing image dimension
-
-    Returns:
-    numpy.ndarray: Resized image
-    '''
-    nrows = dimension[0]
-    ncols = dimension[1]
-
-    output = np.zeros((nrows, ncols, img.shape[2]), np.uint8)
-    for c in range(img.shape[2]):
-        for i in range(nrows):
-            for j in range(ncols):
-                xm = (i + 0.5) * (img.shape[0]/dimension[0]) - 0.5
-                ym = (j + 0.5) * (img.shape[1]/dimension[1]) - 0.5
-
-                xi = floor(xm)
-                yi = floor(ym)
-
-                u = xm - xi
-                v = ym - yi
-
-                out = 0
-                for n in range(-1, 3):
-                    for m in range(-1, 3):
-                        if ((xi + n < 0) or (xi + n >= img.shape[1]) or (yi + m < 0) or (yi + m >= img.shape[0])):
-                            continue
-
-                        out += (img[xi+n, yi+m, c] * (W(u - n) * W(v - m)))
-
-                output[i, j, c] = np.clip(out, 0, 255)
-
-    return output
-
+# # # Linearly calibrated models (LPIPS)
+loss_fn = lpips.LPIPS(net='vgg', spatial=False) # Can also set net = 'squeeze' or 'vgg'
 
 def psnr(imageA, imageB):
     mse = np.mean((imageA - imageB) ** 2)
@@ -255,7 +23,8 @@ def psnr(imageA, imageB):
 def mse(imageA, imageB):
  # the 'Mean Squared Error' between the two images is the sum of the squared difference between the two images
  mse_error = np.sum((imageA.astype("float") - imageB.astype("float")) ** 2)
- mse_error /= float(imageA.shape[0] * imageA.shape[1])
+ mse_error /= float(imageA.shape[0] * imageA.shape[1] * 255 )
+ mse_error /= (np.mean((imageA.astype("float"))))**2
  # return the MSE. The lower the error, the more "similar" the two images are.
  return mse_error
 
@@ -267,121 +36,140 @@ def mae(imageA, imageB):
         return mae * -1
     else:
         return mae
+        
+def ssim(imageA, imageB):
+    return SSIM(imageA, imageB, multichannel=True)
 
-def interpolate(filename):
-    img, size, dimension = read_image(filename)
+def perceptual_dist(imageA_path, imageB_path, use_gpu=False, spatial=False):
 
-    # Change Image Size
-    scale_percent = 20  # percent of original image size
-    resized_img = image_change_scale(img, dimension, scale_percent)
+    # # Linearly calibrated models (LPIPS)
+    # loss_fn = lpips.LPIPS(net='vgg', spatial=False) 
+    # # loss_fn = lpips.LPIPS(net='alex', spatial=spatial, lpips=False) # Can also set net = 'squeeze' or 'vgg'
 
-    # Change image to original size using bilinear interpolation
-    bil_img = image_change_scale(
-        resized_img, dimension, interpolation=cv2.INTER_LINEAR)
-    bil_img_algo = bilinear_interpolation(resized_img, dimension)
-    bil_img_algo = Image.fromarray(bil_img_algo.astype('uint8')).convert('RGB')
+    ## Example usage with images
+    ex_ref = lpips.im2tensor(lpips.load_image(imageA_path))
+    ex_p0 = lpips.im2tensor(lpips.load_image(imageB_path))
+    if(use_gpu):
+        ex_ref = ex_ref.cuda()
+        ex_p0 = ex_p0.cuda()
 
-    # Change image to original size using bicubic interpolation
-    # cubic_img_algo = bicubic(resized_img, 4, -1/4)
-    cubic_img_algo = bicubic_interpolation(resized_img, dimension)
-    cubic_img_algo = Image.fromarray(
-        cubic_img_algo.astype('uint8')).convert('RGB')
-    # cv2.imwrite('cubic.png', np.array(cubic_img_algo))
-    # cv2.imwrite('bilinear.png', np.array(bil_img_algo))
-    return np.array(bil_img_algo), np.array(cubic_img_algo)
+    ex_d0 = loss_fn.forward(ex_ref,ex_p0)
 
-def rotate(image_path, degrees_to_rotate, saved_location):
-    """
-    Rotate the given photo the amount of given degreesk, show it and save it
-    @param image_path: The path to the image to edit
-    @param degrees_to_rotate: The number of degrees to rotate the image
-    @param saved_location: Path to save the cropped image
-    """
-    image_obj = Image.open(image_path)
-    rotated_image = image_obj.rotate(degrees_to_rotate)
-    rotated_image.save(saved_location)
+    if not spatial:
+        return ex_d0.mean().item()
+        # print('Distances: (%.3f)'%(ex_d0, ex_d1))
+    else:
+        # Visualize a spatially-varying distance map between ex_p0 and ex_ref
+        pylab.imshow(ex_d0[0,0,...].data.cpu().numpy())
+        pylab.show()
+        return ex_d0.mean()
+        # print('Distances: (%.3f, %.3f)'%(ex_d0.mean(), ex_d1.mean()))            # The mean distance is approximately the same as the non-spatial distance
 
-def flip_image(image_path, saved_location):
-    """
-    Flip or mirror the image
-    @param image_path: The path to the image to edit
-    @param saved_location: Path to save the cropped image
-    """
-    image_obj = Image.open(image_path)
-    rotated_image = image_obj.transpose(Image.FLIP_LEFT_RIGHT)
-    rotated_image.save(saved_location)
+def split_and_average(img):
+    img_red = img[:,:,2]
+    img_green = img[:,:,1]
+    img_blue = img[:,:,0]
 
-def main(filenameA, gan):
-    imgA, sizeA, _ = read_image(filenameA)
-    print(f"Image Size is: {sizeA}")
-    # rotate(gan, 180, gan)
-    # flip_image(gan, gan)
-    imgB, _, _ = read_image(gan)
-    imgC, imgD = interpolate(filenameA)
+    img_avg = np.zeros(img_red.shape)
+    for i in range(img.shape[0]):
+        for j in range(img.shape[1]):
+            img_avg[i][j] = (img_red[i][j]+img_green[i][j]+img_blue[i][j])/3
+    return img_avg
 
-    grayA = cv2.cvtColor(imgA, cv2.COLOR_BGR2GRAY)
-    grayB = cv2.cvtColor(imgB, cv2.COLOR_BGR2GRAY)
-    grayC = cv2.cvtColor(np.array(imgC), cv2.COLOR_BGR2GRAY)
-    grayD = cv2.cvtColor(np.array(imgD), cv2.COLOR_BGR2GRAY)
+def power_spectrum(img_path):
+    img = Image.open(img_path).convert('L')
+    img.save('greyscale.png')
 
-    print("------- GANs Metrics -------")
-    # Calculate and print the PSNR value
-    psnr_val = psnr(imgA, imgB)
-    print(f"PSNR: {psnr_val}")
-    # Calculate and print the SSIM value
-    ssim_val = ssim(grayA, grayB)
-    print(f"SSIM: {ssim_val}")
-    # Calculate and print the MSE value
-    mse_val = mse(grayA, grayB)
-    print(f"MSE: {mse_val}")
-    # Calculate and print the MAE value
-    mae_val = mae(imgA, imgB)
-    print(f"MAE: {mae_val}")
+    image = mpimg.imread("greyscale.png")
+    npix = image.shape[0]
+    # img = cv2.imread(img_path)
 
-    print("------- Bilinear Metrics -------")
-    # Calculate and print the PSNR value
-    psnr_val = psnr(imgA, imgC)
-    print(f"PSNR: {psnr_val}")
-    # Calculate and print the SSIM value
-    ssim_val = ssim(grayA, grayC)
-    print(f"SSIM: {ssim_val}")
-    # Calculate and print the MSE value
-    mse_val = mse(grayA, grayC)
-    print(f"MSE: {mse_val}")
-    # Calculate and print the MAE value
-    mae_val = mae(imgA, np.array(imgC))
-    print(f"MAE: {mae_val}")
+    # image = split_and_average(img)
 
-    print("------- Bicubic Metrics -------")
-    # Calculate and print the PSNR value
-    psnr_val = psnr(imgA, imgD)
-    print(f"PSNR: {psnr_val}")
-    # Calculate and print the SSIM value
-    ssim_val = ssim(grayA, grayD)
-    print(f"SSIM: {ssim_val}")
-    # Calculate and print the MSE value
-    mse_val = mse(grayA, grayD)
-    print(f"MSE: {mse_val}")
-    # Calculate and print the MAE value
-    mae_val = mae(imgA, np.array(imgD))
-    print(f"MAE: {mae_val}")
+    npix = image.shape[0]
+    fourier_image = np.fft.fftn(image)
+    fourier_amplitudes = np.abs(fourier_image)**2
 
-    fig, axs = plt.subplots(1, 4)
-    fig.suptitle('Comparison', fontsize=16)
+    kfreq = np.fft.fftfreq(npix) * npix
+    kfreq2D = np.meshgrid(kfreq, kfreq)
+    knrm = np.sqrt(kfreq2D[0]**2 + kfreq2D[1]**2)
 
-    axs[0].set_title("Ground Truth")
-    axs[0].imshow(cv2.cvtColor(imgA, cv2.COLOR_BGR2RGB))
+    knrm = knrm.flatten()
+    fourier_amplitudes = fourier_amplitudes.flatten()
 
-    axs[1].set_title("GANs")
-    axs[1].imshow(cv2.cvtColor(np.array(imgB), cv2.COLOR_BGR2RGB))
+    kbins = np.arange(0.5, npix//2+1, 1.)
+    kvals = 0.5 * (kbins[1:] + kbins[:-1])
+    Abins, _, _ = stats.binned_statistic(knrm, fourier_amplitudes,
+                                        statistic = "mean",
+                                        bins = kbins)
+    Abins *= np.pi * (kbins[1:]**2 - kbins[:-1]**2)
+    return kvals, Abins
 
-    axs[2].set_title("Bicubic")
-    axs[2].imshow(cv2.cvtColor(np.array(imgD), cv2.COLOR_BGR2RGB))
+def rescale_linear(array, new_min, new_max):
+    """Rescale an arrary linearly."""
+    minimum, maximum = np.min(array), np.max(array)
+    m = (new_max - new_min) / (maximum - minimum)
+    b = new_min - m * minimum
+    return m * array + b
 
-    axs[3].set_title("Bilinear")
-    axs[3].imshow(cv2.cvtColor(np.array(imgC), cv2.COLOR_BGR2RGB))
+def energy_spectrum(img_path):
+    img = Image.open(img_path).convert('L')
+    img.save('greyscale.png')
 
-    plt.show()
+    image = mpimg.imread("greyscale.png")
 
-if __name__ == "__main__":
-    main("PhIREGAN/wind test/wind images/wind/HR/ua_3461_28.png", "PhIREGAN/wind test/gans images/gans_ua_3461_28.png")
+    
+    # img = cv2.imread(img_path)
+
+    # image = split_and_average(img)
+
+    # npix = image.shape[0]
+    # ampls = abs(np.fft.fftn(image))/npix
+    # ek = ampls**2
+    # ek = np.fft.fftshift(ek)
+    # ek = ek.flatten()
+
+    # kfreq = np.fft.fftfreq(npix) * npix
+    # kfreq2D = np.meshgrid(kfreq, kfreq)
+    # knrm = np.sqrt(kfreq2D[0]**2 + kfreq2D[1]**2)
+
+    # knrm = knrm.flatten()
+    
+    # kbins = np.arange(0.5, npix//2+1, 1.)
+    # kvals = 0.5*(kbins[1:] + kbins[:-1])
+    
+    # ek, _, _ = stats.binned_statistic(knrm, ek,
+    #                                     statistic = "mean",
+    #                                     bins = kbins)
+    
+    # ek *= np.pi * (kbins[1:]**2 - kbins[:-1]**2)
+
+    npix = image.shape[0]
+    fourier_image = np.fft.fftn(image)
+    fourier_amplitudes = np.abs(fourier_image)**2
+    fourier_amplitudes = np.fft.fftshift(fourier_amplitudes)
+
+    kfreq = np.fft.fftfreq(npix) * npix
+    kfreq2D = np.meshgrid(kfreq, kfreq)
+    knrm = np.sqrt(kfreq2D[0]**2 + kfreq2D[1]**2)
+
+    knrm = knrm.flatten()
+    fourier_amplitudes = fourier_amplitudes.flatten()
+
+    kbins = np.arange(0.5, npix//2+1, 1.)
+    kvals = 0.5 * (kbins[1:] + kbins[:-1])
+    Abins, _, _ = stats.binned_statistic(knrm, fourier_amplitudes,
+                                        statistic = "mean",
+                                        bins = kbins)
+    Abins *= np.pi * (kbins[1:]**2 - kbins[:-1]**2)
+
+    return kvals, Abins
+
+def js(p, q):
+    p = np.asarray(p)
+    q = np.asarray(q)
+   # normalize
+    p /= p.sum()
+    q /= q.sum()
+    m = (p + q) / 2
+    return (entropy(p, m) + entropy(q, m)) / 2
