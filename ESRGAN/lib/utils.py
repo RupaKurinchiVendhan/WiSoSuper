@@ -74,6 +74,52 @@ def data_augmentation(LR_images, HR_images, aug_type='horizontal_flip'):
         return np.rot90(LR_images, k=1, axes=(1, 2)), np.rot90(HR_images, k=1, axes=(1, 2))
 
 
+def load_data(data_dir, HR_image_size, LR_image_size, HR_data_dir, LR_data_dir, npz_data_dir, logflag):
+    """make HR and LR data. And save them as npz files"""
+    assert os.path.isdir(data_dir) is True, 'Directory specified by data_dir does not exist or is not a directory'
+
+    all_file_path = glob.glob(data_dir + '/*')
+    assert len(all_file_path) > 0, 'No file in the directory'
+
+    ret_HR_image = []
+    ret_LR_image = []
+
+    for file in all_file_path:
+        img = cv2.imread(file)
+        filename = file.rsplit('/', 1)[-1]
+        HR_image = cv2.resize(img, (HR_image_size, HR_image_size), interpolation=cv2.INTER_LANCZOS4)
+        LR_image = cv2.resize(img, (LR_image_size, LR_image_size), interpolation=cv2.INTER_LANCZOS4)
+
+        cv2.imwrite(HR_data_dir + '/' + filename, HR_image)
+        cv2.imwrite(LR_data_dir + '/' + filename, LR_image)
+
+        ret_HR_image.append(HR_image)
+        ret_LR_image.append(LR_image)
+
+    assert len(ret_HR_image) > 0 and len(ret_LR_image) > 0, 'No availale image is found in the directory'
+    log(logflag, 'Data process : {} images are processed'.format(len(ret_HR_image)), 'info')
+
+    ret_HR_image = np.array(ret_HR_image)
+    ret_LR_image = np.array(ret_LR_image)
+
+    LR_flip, HR_flip = data_augmentation(ret_LR_image, ret_HR_image, aug_type='horizontal_flip')
+    LR_rot, HR_rot = data_augmentation(ret_LR_image, ret_HR_image, aug_type='rotation_90')
+
+    ret_LR_image = np.append(ret_LR_image, LR_flip, axis=0)
+    ret_HR_image = np.append(ret_HR_image, HR_flip, axis=0)
+    ret_LR_image = np.append(ret_LR_image, LR_rot, axis=0)
+    ret_HR_image = np.append(ret_HR_image, HR_rot, axis=0)
+
+    del LR_flip, HR_flip, LR_rot, HR_rot
+
+    HR_npz_filename = 'HR_image.npz'
+    LR_npz_filename = 'LR_image.npz'
+
+    np.savez(npz_data_dir + '/' + HR_npz_filename, images=ret_HR_image)
+    np.savez(npz_data_dir + '/' + LR_npz_filename, images=ret_LR_image)
+
+    return ret_HR_image, ret_LR_image
+
 def load_and_save_data(FLAGS, logflag):
     """make HR and LR data. And save them as npz files"""
     assert os.path.isdir(FLAGS.data_dir) is True, 'Directory specified by data_dir does not exist or is not a directory'
@@ -145,11 +191,11 @@ def load_npz_data(FLAGS):
            np.load(FLAGS.npz_data_dir + '/' + FLAGS.LR_npz_filename)['images']
 
 
-def load_inference_data(FLAGS):
+def load_inference_data(data_dir, FLAGS):
     """load data from directory for inference"""
-    assert os.path.isdir(FLAGS.data_dir) is True, 'Directory specified by data_dir does not exist or is not a directory'
+    assert os.path.isdir(data_dir) is True, 'Directory specified by data_dir does not exist or is not a directory'
 
-    all_file_path = glob.glob(FLAGS.data_dir + '/*')
+    all_file_path = glob.glob(data_dir + '/*')
     assert len(all_file_path) > 0, 'No file in the directory'
 
     ret_LR_image = []

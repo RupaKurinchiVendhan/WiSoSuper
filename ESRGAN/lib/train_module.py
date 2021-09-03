@@ -2,7 +2,7 @@ from collections import OrderedDict
 
 import tensorflow as tf
 
-from lib.network import Generator, Discriminator, Perceptual_VGG19
+from ESRGAN.lib.network import Generator, Discriminator, Perceptual_VGG19
 
 
 class Network(object):

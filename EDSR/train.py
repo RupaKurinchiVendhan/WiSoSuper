@@ -8,11 +8,11 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import backend as K
 from tensorflow.keras.losses import mean_squared_error, mean_absolute_error
 
-import data
-from model import get_generator
-from metrics import psnr
-from utils import save_params, num_iter_per_epoch
-from callbacks import make_tb_callback, make_lr_callback, make_cp_callback
+import EDSR.data as data
+from EDSR.model import get_generator
+from EDSR.metrics import psnr
+from EDSR.utils import save_params, num_iter_per_epoch
+from EDSR.callbacks import make_tb_callback, make_lr_callback, make_cp_callback
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -64,7 +64,7 @@ def prepare_model(**params):
     return model, gpu_model
 
 
-def train(**params):
+def pretrain(**params):
     print("** Loading training images")
     start = time.time()
     lr_hr_ds, n_data = data.load_train_dataset(params['lr_dir'], params['hr_dir'], params['ext'], params['batch_size'])
@@ -92,7 +92,7 @@ def train(**params):
     K.clear_session()
 
 
-def pretrain(model, data_dir, valid_dir, data_ext='.png', valid_ext='.png', resume=None, cuda=None):
+def train(data_dir, valid_dir, model='edsr', data_ext='.png', valid_ext='.png', resume=None, cuda=None):
     if cuda is not None:
         os.environ['CUDA_VISIBLE_DEVICES'] = cuda
         n_gpus = len(cuda.split(','))
@@ -129,10 +129,10 @@ def pretrain(model, data_dir, valid_dir, data_ext='.png', valid_ext='.png', resu
         'exp_dir': './exp/',
     }
 
-    train(**params)
+    pretrain(**params)
 
 
 if __name__ == '__main__':
     pretrain()
 
-# python pretrain.py --arc=erca --train=../SRFeat/data/train/DIV2K --train-ext=.png --valid=../SRFeat/data/test/Set5 --valid-ext=.png --resume=exp/erca-06-24-21\:05/cp-0014.h5 --init_epoch=14 --cuda=1
+# python pretrain.py --arc=edsr --train=../SRFeat/data/train/DIV2K --train-ext=.png --valid=../SRFeat/data/test/Set5 --valid-ext=.png --resume=exp/erca-06-24-21\:05/cp-0014.h5 --init_epoch=14 --cuda=1

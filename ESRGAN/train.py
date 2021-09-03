@@ -7,19 +7,19 @@ import os
 import tensorflow as tf
 from sklearn.utils import shuffle
 
-from lib.ops import load_vgg19_weight
-from lib.pretrain_generator import train_pretrain_generator
-from lib.train_module import Network, Loss, Optimizer
-from lib.utils import create_dirs, log, normalize_images, save_image, load_npz_data, load_and_save_data
+from ESRGAN.lib.ops import load_vgg19_weight
+from ESRGAN.lib.pretrain_generator import train_pretrain_generator
+from ESRGAN.lib.train_module import Network, Loss, Optimizer
+from ESRGAN.lib.utils import create_dirs, log, normalize_images, save_image, load_npz_data, load_and_save_data, load_data
 
 
 def set_flags():
     Flags = tf.app.flags
 
     # About data
-    Flags.DEFINE_string('data_dir', './data/DIV2K_train_HR', 'data directory')
-    Flags.DEFINE_string('HR_data_dir', './data/HR_data', 'HR data directory')
-    Flags.DEFINE_string('LR_data_dir', './data/LR_data', 'LR data directory')
+    Flags.DEFINE_string('data_dir', './data', 'data directory')
+    Flags.DEFINE_string('HR_data_dir', './data/HR', 'HR data directory')
+    Flags.DEFINE_string('LR_data_dir', './data/LR', 'LR data directory')
     Flags.DEFINE_string('npz_data_dir', './data/npz', 'The npz data dir')
     Flags.DEFINE_string('HR_npz_filename', 'HR_image.npz', 'the filename of HR image npz file')
     Flags.DEFINE_string('LR_npz_filename', 'LR_image.npz', 'the filename of LR image npz file')
@@ -36,7 +36,7 @@ def set_flags():
     Flags.DEFINE_float('residual_scaling', 0.2, 'residual scaling parameter')
     Flags.DEFINE_integer('initialization_random_seed', 111, 'random seed of networks initialization')
     Flags.DEFINE_string('perceptual_loss', 'VGG19', 'the part of loss function. "VGG19" or "pixel-wise"')
-    Flags.DEFINE_string('gan_loss_type', 'RaGAN', 'the type of GAN loss functions. "RaGAN or GAN"')
+    Flags.DEFINE_string('gan_loss_type', 'GAN', 'the type of GAN loss functions. "RaGAN or GAN"')
 
     # About training
     Flags.DEFINE_integer('num_iter', 50000, 'The number of iterations')
@@ -47,9 +47,9 @@ def set_flags():
     Flags.DEFINE_float('pretrain_lr_decay_step', 20000, 'decay by every n iteration')
     Flags.DEFINE_float('learning_rate', 1e-4, 'learning rate')
     Flags.DEFINE_float('weight_initialize_scale', 0.1, 'scale to multiply after MSRA initialization')
-    Flags.DEFINE_integer('HR_image_size', 128,
+    Flags.DEFINE_integer('HR_image_size', 100,
                          'Image width and height of HR image. This flag is valid when crop flag is set to false.')
-    Flags.DEFINE_integer('LR_image_size', 32,
+    Flags.DEFINE_integer('LR_image_size', 20,
                          'Image width and height of LR image. This size should be 1/4 of HR_image_size exactly. '
                          'This flag is valid when crop flag is set to false.')
     Flags.DEFINE_float('epsilon', 1e-12, 'used in loss function')
@@ -71,10 +71,10 @@ def set_flags():
     return Flags.FLAGS
 
 
-def set_logger(FLAGS):
+def set_logger(logging, logdir):
     """set logger for training recording"""
-    if FLAGS.logging:
-        logfile = '{0}/training_logfile_{1}.log'.format(FLAGS.logdir, datetime.now().strftime("%Y%m%d_%H%M%S"))
+    if logging:
+        logfile = '{0}/training_logfile_{1}.log'.format(logdir, datetime.now().strftime("%Y%m%d_%H%M%S"))
         formatter = '%(levelname)s:%(asctime)s:%(message)s'
         logging.basicConfig(level=logging.INFO, filename=logfile, format=formatter, datefmt='%Y-%m-%d %I:%M:%S')
 
@@ -82,6 +82,141 @@ def set_logger(FLAGS):
     else:
         print('No logging is set')
         return False
+
+def pretrain(data_dir, pretrain_generator=True):
+    
+    FLAGS = set_flags()
+
+    HR_data_dir = data_dir+'/HR'
+    LR_data_dir = data_dir+'/LR'
+    HR_image_size = 100
+    LR_image_size = 20
+    npz_data_dir = './data/npz'
+    train_result_dir = './train_result'
+    pre_train_checkpoint_dir = './pre_train_checkpoint'
+    checkpoint_dir = './checkpoint'
+    logdir = './log'
+    logging = True # whether to record training log
+    pretrain_generator
+
+    # make dirs
+    target_dirs = [HR_data_dir, LR_data_dir, npz_data_dir, train_result_dir,
+                   pre_train_checkpoint_dir, checkpoint_dir, logdir]
+    create_dirs(target_dirs)
+
+    # set logger
+    logflag = set_logger(logging)
+    log(logflag, 'Training script start', 'info')
+
+    # load data
+    log(logflag, 'Data process : Data processing start', 'info')
+    HR_train, LR_train = load_data(data_dir, HR_image_size, LR_image_size, HR_data_dir, LR_data_dir, npz_data_dir, logflag)
+    log(logflag, 'Data process : Data loading and data processing are completed', 'info')
+
+    # pre-train generator with pixel-wise loss and save the trained model
+    if pretrain_generator:
+        train_pretrain_generator(FLAGS, LR_train, HR_train, logflag)
+        tf.reset_default_graph()
+        gc.collect()
+    else:
+        log(logflag, 'Pre-train : Pre-train skips and an existing trained model will be used', 'info')
+
+    LR_data = tf.placeholder(tf.float32, shape=[None, FLAGS.LR_image_size, FLAGS.LR_image_size, FLAGS.channel],
+                             name='LR_input')
+    HR_data = tf.placeholder(tf.float32, shape=[None, FLAGS.HR_image_size, FLAGS.HR_image_size, FLAGS.channel],
+                             name='HR_input')
+
+    # build Generator and Discriminator
+    network = Network(FLAGS, LR_data, HR_data)
+    gen_out = network.generator()
+    dis_out_real, dis_out_fake = network.discriminator(gen_out)
+
+    # build loss function
+    loss = Loss()
+    gen_loss, dis_loss = loss.gan_loss(FLAGS, HR_data, gen_out, dis_out_real, dis_out_fake)
+
+    # define optimizers
+    global_iter = tf.Variable(0, trainable=False)
+    dis_var, dis_optimizer, gen_var, gen_optimizer = Optimizer().gan_optimizer(FLAGS, global_iter, dis_loss, gen_loss)
+
+    # build summary writer
+    tr_summary = tf.summary.merge(loss.add_summary_writer())
+
+    num_train_data = len(HR_train)
+    num_batch_in_train = int(math.floor(num_train_data / FLAGS.batch_size))
+    num_epoch = int(math.ceil(FLAGS.num_iter / num_batch_in_train))
+
+    HR_train, LR_train = normalize_images(HR_train, LR_train)
+
+    fetches = {'dis_optimizer': dis_optimizer, 'gen_optimizer': gen_optimizer,
+               'dis_loss': dis_loss, 'gen_loss': gen_loss,
+               'gen_HR': gen_out,
+               'summary': tr_summary
+               }
+
+    gc.collect()
+
+    config = tf.ConfigProto(
+        gpu_options=tf.GPUOptions(
+            allow_growth=True,
+            visible_device_list=FLAGS.gpu_dev_num
+        )
+    )
+
+    # Start Session
+    with tf.Session(config=config) as sess:
+        log(logflag, 'Training ESRGAN starts', 'info')
+
+        sess.run(tf.global_variables_initializer())
+        sess.run(global_iter.initializer)
+
+        writer = tf.summary.FileWriter(FLAGS.logdir, graph=sess.graph)
+
+        pre_saver = tf.train.Saver(var_list=tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator'))
+        pre_saver.restore(sess, tf.train.latest_checkpoint(FLAGS.pre_train_checkpoint_dir))
+
+        if FLAGS.perceptual_loss == 'VGG19':
+            sess.run(load_vgg19_weight(FLAGS))
+
+        saver = tf.train.Saver(max_to_keep=10)
+
+        for epoch in range(num_epoch):
+            log(logflag, 'ESRGAN Epoch: {0}'.format(epoch), 'info')
+            HR_train, LR_train = shuffle(HR_train, LR_train, random_state=222)
+
+            for iteration in range(num_batch_in_train):
+                current_iter = tf.train.global_step(sess, global_iter)
+                if current_iter > FLAGS.num_iter:
+                    break
+
+                feed_dict = {
+                    HR_data: HR_train[iteration * FLAGS.batch_size:iteration * FLAGS.batch_size + FLAGS.batch_size],
+                    LR_data: LR_train[iteration * FLAGS.batch_size:iteration * FLAGS.batch_size + FLAGS.batch_size]
+                }
+
+                # update weights of G/D
+                result = sess.run(fetches=fetches, feed_dict=feed_dict)
+
+                # save summary every n iter
+                if current_iter % FLAGS.train_summary_save_freq == 0:
+                    writer.add_summary(result['summary'], global_step=current_iter)
+
+                # save samples every n iter
+                if current_iter % FLAGS.train_sample_save_freq == 0:
+                    log(logflag,
+                        'ESRGAN iteration : {0}, gen_loss : {1}, dis_loss : {2}'.format(current_iter,
+                                                                                        result['gen_loss'],
+                                                                                        result['dis_loss']),
+                        'info')
+
+                    save_image(FLAGS, result['gen_HR'], 'train', current_iter, save_max_num=5)
+
+                if current_iter % FLAGS.train_ckpt_save_freq == 0:
+                    saver.save(sess, os.path.join(FLAGS.checkpoint_dir, 'gen'), global_step=current_iter)
+
+        writer.close()
+        log(logflag, 'Training ESRGAN end', 'info')
+        log(logflag, 'Training script end', 'info')
 
 
 def main():

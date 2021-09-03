@@ -2,10 +2,6 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from math import sqrt, floor, log10
-from skimage.metrics import structural_similarity as ssim
-from PIL import Image
-import pandas as pd
-from comparison.metrics import *
 
 def read_image(path):
     '''Read image and return the image propertis.

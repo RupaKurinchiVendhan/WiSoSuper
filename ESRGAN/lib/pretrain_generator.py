@@ -5,9 +5,9 @@ import math
 from sklearn.utils import shuffle
 import tensorflow as tf
 
-from lib.ops import scale_initialization
-from lib.train_module import Network, Loss, Optimizer
-from lib.utils import log, normalize_images, save_image
+from ESRGAN.lib.ops import scale_initialization
+from ESRGAN.lib.train_module import Network, Loss, Optimizer
+from ESRGAN.lib.utils import log, normalize_images, save_image
 
 
 def train_pretrain_generator(FLAGS, LR_train, HR_train, logflag):

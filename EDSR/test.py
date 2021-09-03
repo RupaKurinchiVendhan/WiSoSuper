@@ -3,9 +3,9 @@ import argparse
 
 import tensorflow as tf
 
-import data
-from model import get_generator
-import utils
+import EDSR.data as data
+from EDSR.model import get_generator
+import EDSR.utils as utils
 
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -65,7 +65,7 @@ def main():
     parser.add_argument('--lr_path', type=str, default=None, help='Path to a lr image')
     parser.add_argument('--ext', type=str, help='Image extension')
     parser.add_argument('--default', action='store_true', help='Path to lr images')
-    parser.add_argument('--save_dir', type=str, help='folder to save SR images')
+    parser.add_argument('--save_dir', type=str, default='./output', help='folder to save SR images')
     parser.add_argument('--cuda', type=str, default=None, help='a list of gpus')
     args = parser.parse_args()
 

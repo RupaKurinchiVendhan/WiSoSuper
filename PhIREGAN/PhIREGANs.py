@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 from time import strftime, time
+import matplotlib.pyplot as plt
 from PhIREGAN.utils import plot_SR_data
 from PhIREGAN.sr_network import SR_NETWORK
 
@@ -338,7 +339,7 @@ class PhIREGANs:
 
         return g_saved_model
 
-    def test(self, r, data_path, model_path, data_type, timestep, batch_size=100, plot_data=False):
+    def test(self, r, data_path, model_path, data_type, model_type, timestep, batch_size=100):
         '''
             This method loads a previously trained model and runs it on test data
 
@@ -400,11 +401,6 @@ class PhIREGANs:
 
                     batch_LR = self.mu_sig[1]*batch_LR + self.mu_sig[0]
                     batch_SR = self.mu_sig[1]*batch_SR + self.mu_sig[0]
-                    # if plot_data:
-                        # img_path = '/'.join([self.data_out_path, 'imgs'])
-                        # if not os.path.exists(img_path):
-                        #     os.makedirs(img_path)
-                        # plot_SR_data(batch_idx, batch_LR, batch_SR, img_path)
 
                     if data_out is None:
                         data_out = batch_SR
@@ -417,8 +413,21 @@ class PhIREGANs:
             if not os.path.exists(self.data_out_path):
                 os.makedirs(self.data_out_path)
             np.save(self.data_out_path+'/dataSR.npy', data_out)
-            np.save('{data_type} test/gans arrays/dataSR_{timestep}.npy'.format(data_type=data_type, timestep=timestep), data_out)
+            np.save('{data_type} test/phiregan arrays/dataSR_{timestep}.npy'.format(data_type=data_type, timestep=timestep), data_out)
 
+        print('Done.')
+
+        print('Saving output ...')
+        n = data_out.shape[0]
+        components = {'wind': {'ua':1, 'va':1}, 'solar': {'dni':0, 'dhi':1}}
+        for i in range (n):
+            for component in components[data_type]:
+                f = "output/{data_type} test/{model_type} images/{model_type}_{component}_{timestep}_{i}.png".format(data_type=data_type, model_type=model_type, component=component, timestep=timestep, i=i)
+                data = data_out[i, :, :, components[data_type][component]]
+                vmin, vmax = np.min(data_out[:,:,:,components[data_type][component]]), np.max(data_out[:,:,:,components[data_type][component]])   
+                plt.imsave(f, data, vmin=vmin, vmax=vmax, origin='lower', format="png")
+                # rotate(f, 180)
+                # flip_image(f)
         print('Done.')
         return data_out
 
