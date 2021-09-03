@@ -20,8 +20,8 @@ def sub_pixel_conv2d(scale=2, **kwargs):
 
 
 def upsample(input_tensor, filters):
-    x = Conv2D(filters=filters * 4, kernel_size=3, strides=1, padding='same')(input_tensor)
-    x = sub_pixel_conv2d(scale=2)(x)
+    x = Conv2D(filters=filters * 25, kernel_size=3, strides=1, padding='same')(input_tensor)
+    x = sub_pixel_conv2d(scale=5)(x)
     x = Activation('relu')(x)
     return x
 

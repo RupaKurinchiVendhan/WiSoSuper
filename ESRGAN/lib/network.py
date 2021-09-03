@@ -1,5 +1,7 @@
 import tensorflow as tf
 
+from tensorflow.keras.layers import Input, Conv2D, Activation, Add, Lambda, PReLU
+from tensorflow.keras.models import Model
 
 class Generator(object):
     """the definition of Generator"""
@@ -41,10 +43,13 @@ class Generator(object):
 
         return x + x_branch * self.residual_scaling
 
-    def _upsampling_layer(self, x, num=None):
-        x = tf.layers.conv2d_transpose(x, self.n_filter, 3, 2, padding='same', name='upsample_{0}'.format(num))
-        x = tf.nn.leaky_relu(x, alpha=0.2, name='leakyReLU')
+    def sub_pixel_conv2d(scale=2, **kwargs):
+        return Lambda(lambda x: tf.depth_to_space(x, scale), **kwargs)
 
+    def _upsampling_layer(self, x, num=None, filters=64):
+        x = Conv2D(filters=filters * 25, kernel_size=3, strides=1, padding='same')(input_tensor)
+        x = self.sub_pixel_conv2d(scale=5)(x)
+        x = PReLU(shared_axes=[1,2])(x)
         return x
 
     def build(self, x):
@@ -65,7 +70,6 @@ class Generator(object):
 
         with tf.variable_scope('Upsampling'):
             x = self._upsampling_layer(x, 1)
-            x = self._upsampling_layer(x, 2)
 
         with tf.variable_scope('last_conv'):
             x = tf.layers.conv2d(x, self.n_filter, 3, 1, padding='same', kernel_initializer=self.init_kernel,
