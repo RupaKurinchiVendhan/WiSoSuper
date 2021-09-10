@@ -1,14 +1,18 @@
+'''
+@author: Rupa Kurinchi-Vendhan
+The following code offers a method for generating a kinetic energy spectrum, in a manner similar to generating a power spectrum.
+For an official implementation of how to create a plot using turbulent flow statistics as in the paper, refer to this repository:
+https://github.com/b-fg/Energy_spectra/blob/master/ek.py.
+'''
+
 import matplotlib.image as mpimg
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 from PIL import Image
-import cv2
-from numpy.lib.function_base import interp
 from PhIREGAN.PhIREGANs import *
 from utils import *
 import scipy.stats as stats
-from scipy.stats import entropy
 from Interpolation.interpolation import *
 import os
 
