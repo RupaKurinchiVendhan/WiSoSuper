@@ -3,12 +3,8 @@ from metrics import *
 from utils import *
 from Interpolation.interpolation import *
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-import pandas as pd
-import matplotlib.image as mpimg
-import scipy.stats as stats
 
 class Tester:
     DEFAULT_TIMESTEPS = []
@@ -21,27 +17,97 @@ class Tester:
         self.edsr_metrics = {'PSNR': [], 'SSIM': [], 'MSE': [], 'MAE': []}
         self.timesteps = timesteps if timesteps is not None else self.DEFAULT_TIMESTEPS
 
-    def interpolate(self, gt_HR, cub, bil):
-        img, size, dimension = read_image(gt_HR)
+    def interpolate(self, HR_dir, cub):
+        for gt_HR in os.listdir(HR_dir):
+            img, _, dimension = read_image(gt_HR)
 
-        # Change Image Size
-        scale_percent = 20  # percent of original image size
-        resized_img = image_change_scale(img, dimension, scale_percent)
+            # Change Image Size
+            scale_percent = 20  # percent of original image size
+            resized_img = image_change_scale(img, dimension, scale_percent)
 
-        # Change image to original size using bicubic interpolation
-        cubic_img_algo = bicubic_interpolation(resized_img, dimension)
-        cubic_img_algo = Image.fromarray( 
-            cubic_img_algo.astype('uint8')).convert('RGB')
+            # Change image to original size using bicubic interpolation
+            cubic_img_algo = bicubic_interpolation(resized_img, dimension)
+            cubic_img_algo = Image.fromarray( 
+                cubic_img_algo.astype('uint8')).convert('RGB')
 
-        # Save output
-        cv2.imwrite(cub, np.array(cubic_img_algo))
+            # Save output
+            cv2.imwrite(cub+gt_HR, np.array(cubic_img_algo))
 
-        return np.array(cubic_img_algo)
-                    
-    def compare_output_helper(self, data_type, component, timestep, i, plot=False):
+    def report_metrics(self):
+        print("------- GANs Metrics -------")
+        # Calculate and print the PSNR value
+        gan_psnr_val = np.mean(self.gan_metrics['PSNR'])
+        print(f"PSNR: {gan_psnr_val}")
+        # Calculate and print the SSIM value
+        gan_ssim_val = np.mean(self.gan_metrics['SSIM'])
+        print(f"SSIM: {gan_ssim_val}")
+        # Calculate and print the MSE value
+        gan_mse_val = np.mean(self.gan_metrics['MSE'])
+        print(f"MSE: {gan_mse_val}")
+        # Calculate and print the MAE value
+        gan_mae_val = np.mean(self.gan_metrics['MAE'])
+        print(f"MAE: {gan_mae_val}")
+
+        print("------- SR CNN Metrics -------")
+        # Calculate and print the PSNR value
+        cnn_psnr_val = np.mean(self.cnn_metrics['PSNR'])
+        print(f"PSNR: {cnn_psnr_val}")
+        # Calculate and print the SSIM value
+        cnn_ssim_val = np.mean(self.cnn_metrics['SSIM'])
+        print(f"SSIM: {cnn_ssim_val}")
+        # Calculate and print the MSE value
+        cnn_mse_val = np.mean(self.cnn_metrics['MSE'])
+        print(f"MSE: {cnn_mse_val}")
+        # Calculate and print the MAE value
+        cnn_mae_val = np.mean(self.cnn_metrics['MAE'])
+        print(f"MAE: {cnn_mae_val}")
+
+        print("------- Bicubic Metrics -------")
+        # Calculate and print the PSNR value
+        cub_psnr_val = np.mean(self.bicubic_metrics['PSNR'])
+        print(f"PSNR: {cub_psnr_val}")
+        # Calculate and print the SSIM value
+        cub_ssim_val = np.mean(self.bicubic_metrics['SSIM'])
+        print(f"SSIM: {cub_ssim_val}")
+        # Calculate and print the MSE value
+        cub_mse_val = np.mean(self.bicubic_metrics['MSE'])
+        print(f"MSE: {cub_mse_val}")
+        # Calculate and print the MAE value
+        cub_mae_val = np.mean(self.bicubic_metrics['MAE'])
+        print(f"MAE: {cub_mae_val}")
+
+        print("------- EDSR Metrics -------")
+        # Calculate and print the PSNR value
+        edsr_psnr_val = np.mean(self.edsr_metrics['PSNR'])
+        print(f"PSNR: {edsr_psnr_val}")
+        # Calculate and print the SSIM value
+        edsr_ssim_val = np.mean(self.edsr_metrics['SSIM'])
+        print(f"SSIM: {edsr_ssim_val}")
+        # Calculate and print the MSE value
+        edsr_mse_val = np.mean(self.edsr_metrics['MSE'])
+        print(f"MSE: {edsr_mse_val}")
+        # Calculate and print the MAE value
+        edsr_mae_val = np.mean(self.edsr_metrics['MAE'])
+        print(f"MAE: {edsr_mae_val}")
+
+        print("------- ESRGAN Metrics -------")
+        # Calculate and print the PSNR value
+        esrgan_psnr_val = np.mean(self.esrgan_metrics['PSNR'])
+        print(f"PSNR: {esrgan_psnr_val}")
+        # Calculate and print the SSIM value
+        esrgan_ssim_val = np.mean(self.esrgan_metrics['SSIM'])
+        print(f"SSIM: {esrgan_ssim_val}")
+        # Calculate and print the MSE value
+        esrgan_mse_val = np.mean(self.esrgan_metrics['MSE'])
+        print(f"MSE: {esrgan_mse_val}")
+        # Calculate and print the MAE value
+        esrgan_mae_val = np.mean(self.esrgan_metrics['MAE'])
+        print(f"MAE: {esrgan_mae_val}")
+
+    def compare_output_helper(self, data_type, component, timestep, i):
         gt_HR = "output/{data_type} test/{data_type} images/{data_type}/HR/{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
         phiregan = "output/{data_type} test/phiregan images/phiregan_{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
-        cub = "output/{data_type} test/bicubic/bicubic_{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
+        cub = "output/{data_type} test/bicubic/{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
         edsr = "output/{data_type} test/edsr/sr_output/{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
         esrgan = "output/{data_type} test/esrgan/inference_result/{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
         cnn = "output/{data_type} test/cnn images/cnn_{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
@@ -107,3 +173,10 @@ class Tester:
         for timestep in self.timesteps:
             for i in range(256):
                 self.compare_output_helper(data_type, component, timestep, i)
+        self.report_metrics()
+
+if __name__ == '__main__':
+    test_wind_timesteps = [3461]
+    test = Tester(test_wind_timesteps)
+    test.interpolate("output/{data_type} test/{data_type} images/{data_type}/HR/", "output/{data_type} test/bicubic/")
+    test.compare_output(data_type='wind', component=None)

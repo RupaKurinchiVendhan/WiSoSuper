@@ -7,10 +7,7 @@ from ESRGAN.inference import *
 from metrics import *
 from utils import *
 from Interpolation.interpolation import *
-import matplotlib.pyplot as plt
-import numpy as np
 import os
-import test
 
 def phiregan(data_type, data_dir, mode):
     for filename in os.listdir(data_dir):
@@ -52,6 +49,7 @@ def phiregan(data_type, data_dir, mode):
                     model_type='phiregan',
                     timestep=timestep, 
                     batch_size=1)
+
 
 def srcnn(data_type, data_dir, mode):
     for filename in os.listdir(data_dir):
@@ -112,7 +110,7 @@ def esrgan(mode, data_dir, save_dir, pretrain_generator=True):
         pretrain(data_dir=data_dir, pretrain_generator=pretrain_generator)
     if mode == 'test':
         test(valid_dir=data_dir, save_dir=save_dir)
-    
+
 
 def main():
     parser = argparse.ArgumentParser(description='Generate SR images')
@@ -139,6 +137,7 @@ def main():
         edsr(args.mode, args.data_dir, args.ext, args.valid_dir, args.save_dir, args.model_path, args.resume, args.cuda)
     elif (args.model == 'esrgan'):
         esrgan(args.mode, args.data_dir, args.save_dir)
+
 
 if __name__ == '__main__':
     main()
