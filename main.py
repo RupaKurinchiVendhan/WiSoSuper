@@ -1,3 +1,13 @@
+'''
+@author: Rupa Kurinchi-Vendhan
+
+The following code enables the ease-of-comparison across various implementations of SR models.
+The original implementations of each model are available at:
+PhIREGAN: https://github.com/NREL/PhIRE
+ESRGAN: https://github.com/hiram64/ESRGAN-tensorflow
+EDSR: https://github.com/hieubkset/Keras-Image-Super-Resolution
+'''
+
 from PhIREGAN.PhIREGANs import *
 from EDSR.model import get_generator
 from EDSR.test import *
