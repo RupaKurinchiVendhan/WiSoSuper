@@ -1,6 +1,13 @@
+'''
+@author: Rupa Kurinchi-Vendhan
+
+The following code offers a method for generating normalized semivariograms averaged over each solar data field.
+
+Modify file directories and other parameters as necessary.
+'''
+
 import matplotlib.image as mpimg
 import numpy as np
-import matplotlib.pyplot as plt
 from PIL import Image
 from numpy.lib.function_base import interp
 from skgstat.models import variogram
@@ -22,7 +29,7 @@ plt.rc('legend', fontsize=14) # fontsize of the legend
 VARIOGRAM = {'Ground Truth':  {'x':[], 'y':[]}, 'LR Input':  {'x':[], 'y':[]}, 'PhIREGAN': {'x':[], 'y':[]}, 'EDSR': {'x':[], 'y':[]}, 'ESRGAN': {'x':[], 'y':[]}, 'SR CNN': {'x':[], 'y':[]}, 'Bicubic': {'x':[], 'y':[]}}
 
 
-def compare_output_helper(data_type, component, timestep, i, plot=False):
+def variogram(data_type, component, timestep, i, plot=False):
     gt_HR = "output/{data_type} test/{data_type} images/{data_type}/HR/{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
     phiregan = "output/{data_type} test/phiregan images/phiregan_{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
     cub = "output/{data_type} test/bicubic5/bicubic_{component}_{timestep}_{i}.png".format(data_type=data_type, component=component, timestep=timestep, i=i)
@@ -73,5 +80,5 @@ if __name__ == '__main__':
     test_solar_timesteps = [2322]
     for timestep in test_solar_timesteps:
             for i in range(256):
-                compare_output_helper(data_type='solar', component=component, timestep=timestep, i=i)
+                variogram(data_type='solar', component=component, timestep=timestep, i=i)
     plot_variogram()

@@ -51,3 +51,5 @@ Here, `save_dir` is the directory where SR outputs should be saved.
 
 `main.py --model=edsr --mode=test --data_dir=path/to/test/data --save_dir=path/to/save --model_path=path/to/model --cuda=0`
 
+## Comparison
+
