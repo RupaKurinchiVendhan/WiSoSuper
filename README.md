@@ -13,6 +13,10 @@ As the United States constructs additional renewable wind and solar energy power
 ## Dataset
 The dataset used for this project is available through the [data.ipynb](https://github.com/RupaKurinchiVendhan/SuperEnergyBench/blob/main/data.ipynb) notebook. This file also contains instructions for generating your own machine learning-ready dataset, with flexibility to change the parameters inputted to NREL's WIND Toolkit and NSRDB.
 
+Quick Links:
+
+[wind data](https://www.filefactory.com/file/77ekv9v0ssx4/wind.zip)
+
 ## Training
 To train the PhIREGAN, ESRGAN, or EDSR models to achieve 5x super-resolution (SR), use the following commands.
 
