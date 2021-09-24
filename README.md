@@ -15,7 +15,8 @@ The dataset used for this project is available through the [data.ipynb](https://
 
 **Quick Links:**
 
-[wind data](https://www.filefactory.com/file/77ekv9v0ssx4/wind.zip)
+[wind data](https://data.caltech.edu/records/2126)
+[solar data](https://data.caltech.edu/records/2127)
 
 ## Training
 To train the PhIREGAN, ESRGAN, or EDSR models to achieve 5x super-resolution (SR), use the following commands.
