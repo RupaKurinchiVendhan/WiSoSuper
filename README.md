@@ -17,6 +17,7 @@ The dataset used for this project is available through the [data.ipynb](https://
 **Quick Links:**
 
 [wind data](https://data.caltech.edu/records/2126)
+  
 [solar data](https://data.caltech.edu/records/2127)
 
 ## Training
