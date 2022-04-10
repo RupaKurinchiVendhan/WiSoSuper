@@ -15,10 +15,17 @@ As the United States constructs additional renewable wind and solar energy power
 The dataset used for this project is available through the [data.ipynb](https://github.com/RupaKurinchiVendhan/SuperEnergyBench/blob/main/data.ipynb) notebook. This file also contains instructions for generating your own machine learning-ready dataset, with flexibility to change the parameters inputted to NREL's WIND Toolkit and NSRDB.
 
 **Quick Links:**
-
+The following links are from Caltech's Data Repository. This includes the wind and solar datasets, as well as sample wind and solar test datasets.
+  
 [wind data](https://data.caltech.edu/records/2126)
   
 [solar data](https://data.caltech.edu/records/2127)
+
+The links below provide access to sample wind and solar TFRecords, to be used to test the PhIREGAN.
+
+[wind TFRecords](https://drive.google.com/file/d/1YOskV2lmsnaOX9233-_Q2M5GRL779Okq/view?usp=sharing)
+  
+[solar TFRecords](https://drive.google.com/file/d/16G61UgIyYlDciG_IUyR5XYv8wMB838vb/view?usp=sharing)
 
 ## Training
 To train the PhIREGAN, ESRGAN, or EDSR models to achieve 5x super-resolution (SR), use the following commands.
