@@ -65,6 +65,15 @@ Here, `save_dir` is the directory where SR outputs should be saved.
 
 `main.py --model=edsr --mode=test --data_dir=path/to/test/data --save_dir=path/to/save --model_path=path/to/model --cuda=0`
 
+** Results **
+Sample results from each of our models are shown below.
+<p align="center">
+  <img src="https://github.com/RupaKurinchiVendhan/WiSoSuper/blob/main/figs/wind_sample.jpg" alt="Doodle Jump 3: Fairy Tail Character and Artwork"/>
+</p>
+<p align="center">
+  <img src="https://github.com/RupaKurinchiVendhan/WiSoSuper/blob/main/figs/solar_sample.jpg" alt="Doodle Jump 3: Fairy Tail Character and Artwork"/>
+</p>
+
 **Comparison**
 
 To calculate the standard image quality metric values for the SR outputs of each model, use [test.py](https://github.com/RupaKurinchiVendhan/SuperEnergyBench/blob/main/test.py). Alternatively, you can generate kinetic energy spectra using [energy.py](https://github.com/RupaKurinchiVendhan/SuperEnergyBench/blob/main/energy.py) and normalized semivariograms using [semivariogram.py](https://github.com/RupaKurinchiVendhan/SuperEnergyBench/blob/main/energy.py).
