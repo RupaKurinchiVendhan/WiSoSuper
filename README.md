@@ -26,6 +26,8 @@ The links below provide access to sample wind and solar TFRecords, to be used to
 [wind TFRecords](https://drive.google.com/file/d/1YOskV2lmsnaOX9233-_Q2M5GRL779Okq/view?usp=sharing)
   
 [solar TFRecords](https://drive.google.com/file/d/16G61UgIyYlDciG_IUyR5XYv8wMB838vb/view?usp=sharing)
+  
+To access raw data, visit our Caltech Data Respository page: [raw data](https://data.caltech.edu/records/czs3p-5ss80)
 
 ## Training
 To train the PhIREGAN, ESRGAN, or EDSR models to achieve 5x super-resolution (SR), use the following commands.
@@ -65,7 +67,7 @@ Here, `save_dir` is the directory where SR outputs should be saved.
 
 `main.py --model=edsr --mode=test --data_dir=path/to/test/data --save_dir=path/to/save --model_path=path/to/model --cuda=0`
 
-** Results **
+## Results
 Sample results from each of our models are shown below.
 <p align="center">
   <img src="https://github.com/RupaKurinchiVendhan/WiSoSuper/blob/main/figs/wind_sample.jpg" alt="Doodle Jump 3: Fairy Tail Character and Artwork"/>
@@ -74,6 +76,6 @@ Sample results from each of our models are shown below.
   <img src="https://github.com/RupaKurinchiVendhan/WiSoSuper/blob/main/figs/solar_sample.jpg" alt="Doodle Jump 3: Fairy Tail Character and Artwork"/>
 </p>
 
-**Comparison**
+## Comparison
 
 To calculate the standard image quality metric values for the SR outputs of each model, use [test.py](https://github.com/RupaKurinchiVendhan/SuperEnergyBench/blob/main/test.py). Alternatively, you can generate kinetic energy spectra using [energy.py](https://github.com/RupaKurinchiVendhan/SuperEnergyBench/blob/main/energy.py) and normalized semivariograms using [semivariogram.py](https://github.com/RupaKurinchiVendhan/SuperEnergyBench/blob/main/energy.py).
